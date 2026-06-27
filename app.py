@@ -175,8 +175,21 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] > div { padding:0 !important; overflow-y:auto; }
 [data-testid="collapsedControl"] {
     display:flex !important; visibility:visible !important; opacity:1 !important;
-    background:#171717 !important; border:1px solid #2e2e2e !important;
-    border-radius:0 6px 6px 0 !important; color:#ececec !important;
+    background:#171717 !important; border:1px solid #3a3a3a !important;
+    border-radius:0 8px 8px 0 !important; color:#ececec !important;
+    width:24px !important; min-width:24px !important;
+    box-shadow:2px 0 8px rgba(0,0,0,0.3) !important;
+    z-index:999 !important;
+}
+[data-testid="collapsedControl"] svg {
+    color:#ececec !important; fill:#ececec !important;
+}
+[data-testid="collapsedControl"]:hover {
+    background:#2a2a2a !important; border-color:#10a37f !important;
+}
+/* Also fix expand button inside sidebar */
+button[data-testid="baseButton-header"] {
+    color:#ececec !important; background:transparent !important;
 }
 
 /* ═══ ALL BUTTONS BASE ═══ */
@@ -399,6 +412,21 @@ hr { border:none !important; border-top:1px solid #2e2e2e !important; margin:6px
 .model-opt.active { border-color:#10a37f !important; background:#0d2d22 !important; }
 .model-opt-name { font-size:15px; font-weight:600; color:#ececec; }
 .model-opt-desc { font-size:12px; color:#888; margin-top:2px; }
+
+/* ═══ BACK BUTTON ═══ */
+.back-btn button {
+    background:#2a2a2a !important; color:#ececec !important;
+    border:1px solid #3a3a3a !important; border-radius:10px !important;
+    font-size:13px !important; font-weight:500 !important;
+    padding:8px 16px !important; width:auto !important;
+    display:inline-flex !important; align-items:center !important;
+    gap:6px !important; cursor:pointer !important;
+    transition:all 0.15s !important;
+}
+.back-btn button:hover {
+    background:#333 !important; border-color:#10a37f !important;
+    color:#10a37f !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -567,8 +595,10 @@ else:
         _, cc, _ = st.columns([1,3,1])
         with cc:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("← Back", key="back_acc"):
+            st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+            if st.button("← Back to Chat", key="back_acc"):
                 st.session_state.page = "chat"; st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
             av_lg = f'<img src="{pic}" style="width:70px;height:70px;border-radius:50%;border:3px solid #10a37f;object-fit:cover;"/>' if pic \
@@ -631,8 +661,10 @@ else:
         _, cc, _ = st.columns([1,3,1])
         with cc:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("← Back", key="back_mdl"):
+            st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+            if st.button("← Back to Chat", key="back_mdl"):
                 st.session_state.page = "chat"; st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<h2 style="color:#ececec;font-size:1.5rem;margin-bottom:6px;">AI Models</h2>', unsafe_allow_html=True)
             st.markdown('<p style="color:#888;font-size:14px;margin-bottom:24px;">Choose which AI model to chat with</p>', unsafe_allow_html=True)
@@ -674,8 +706,10 @@ else:
         _, cc, _ = st.columns([1,3,1])
         with cc:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("← Back", key="back_srch"):
+            st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+            if st.button("← Back to Chat", key="back_srch"):
                 st.session_state.page = "chat"; st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<h2 style="color:#ececec;font-size:1.5rem;margin-bottom:16px;">Search chats</h2>', unsafe_allow_html=True)
             query = st.text_input("", placeholder="Search your conversations…",
