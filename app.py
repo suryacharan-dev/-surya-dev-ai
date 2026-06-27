@@ -148,7 +148,7 @@ with st.sidebar:
     st.markdown("---")
     
     # API Key Configuration
-    api_key = st.text_input("Gemini API Key", type="password", placeholder="Enter your key here...")
+   api_key = "AQ.Ab8RN6KH1N0kCQfJBeUndy8RprjXQllBlAXalOfZGqnAucX6fg"
     if api_key:
         try:
             genai.configure(api_key=api_key)
