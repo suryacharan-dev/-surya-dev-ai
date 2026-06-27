@@ -17,7 +17,7 @@ CLIENT_ID = st.secrets["CLIENT_ID"]
 CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
-REDIRECT_URI = "http://localhost:8501"
+REDIRECT_URI = "https://nz5ossng47a243vac5nrti.streamlit.app"
 SCOPE = "openid email profile"
 CHATS_FILE = "chats.json"
 
