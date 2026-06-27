@@ -105,10 +105,14 @@ LIVE_KW = ["latest","current","today","now","recent","news","live","2024","2025"
 def needs_search(q): return any(k in q.lower() for k in LIVE_KW)
 
 # ── AI Response ───────────────────────────────────────────────────────────────
+def clean_msgs(messages):
+    """Strip extra keys like 'searched' — APIs only accept 'role' and 'content'"""
+    return [{"role": m["role"], "content": m["content"]} for m in messages]
+
 def get_response(messages, model, use_live=True):
     try:
         last = next((m["content"] for m in reversed(messages) if m["role"]=="user"), "")
-        aug = list(messages)
+        aug = clean_msgs(messages)
         searched = False
 
         if use_live and needs_search(last):
@@ -118,7 +122,7 @@ def get_response(messages, model, use_live=True):
                 searched = True
                 inject = {"role":"user","content":
                     f"Live web info:\n---\n{ctx[:1500]}\n---\nUse this to answer. Question: {last}"}
-                aug = list(messages[:-1]) + [inject]
+                aug = clean_msgs(messages[:-1]) + [inject]
 
         if model == "Llama 3.3 (Groq)":
             r = groq_client.chat.completions.create(model="llama-3.3-70b-versatile", messages=aug)
@@ -762,5 +766,3 @@ else:
             st.session_state.chat_id = cid
             chats[email][cid] = {"title":st.session_state.msgs[0]["content"][:40],"messages":st.session_state.msgs}
             st.session_state.chats = chats; save_chats(chats); st.rerun()
-            save_chats(chats)
-            st.rerun()
