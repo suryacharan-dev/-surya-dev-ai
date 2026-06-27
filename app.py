@@ -8,6 +8,7 @@ import jwt
 import json
 import os
 import re
+import base64
 from datetime import datetime
 from urllib.parse import quote
 
@@ -29,42 +30,35 @@ groq_client   = Groq(api_key=GROQ_API_KEY)
 genai.configure(api_key=GEMINI_API_KEY)
 cohere_client = cohere.ClientV2(api_key=COHERE_API_KEY)
 
-# ── Robot Logo SVG ────────────────────────────────────────────────────────────
-ROBOT_LOGO_SVG = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="{size}" height="{size}">
-  <!-- Head -->
+# ── Robot Logo (base64 SVG — renders correctly in Streamlit) ─────────────────
+_ROBOT_SVG_RAW = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect x="14" y="16" width="36" height="28" rx="8" fill="#d97706"/>
-  <!-- Eyes -->
   <circle cx="24" cy="27" r="5" fill="white"/>
   <circle cx="40" cy="27" r="5" fill="white"/>
   <circle cx="25" cy="28" r="2.5" fill="#1a1a1a"/>
   <circle cx="41" cy="28" r="2.5" fill="#1a1a1a"/>
   <circle cx="26" cy="27" r="1" fill="white"/>
   <circle cx="42" cy="27" r="1" fill="white"/>
-  <!-- Mouth -->
   <rect x="22" y="36" width="20" height="3" rx="1.5" fill="white" opacity="0.8"/>
   <rect x="25" y="36" width="3" height="3" rx="1" fill="#d97706"/>
   <rect x="31" y="36" width="3" height="3" rx="1" fill="#d97706"/>
   <rect x="37" y="36" width="3" height="3" rx="1" fill="#d97706"/>
-  <!-- Antenna -->
   <rect x="30" y="8" width="4" height="10" rx="2" fill="#d97706"/>
   <circle cx="32" cy="7" r="4" fill="#f59e0b"/>
   <circle cx="32" cy="7" r="2" fill="white"/>
-  <!-- Ears -->
   <rect x="7" y="22" width="7" height="12" rx="3" fill="#b45309"/>
   <rect x="50" y="22" width="7" height="12" rx="3" fill="#b45309"/>
-  <!-- Neck -->
   <rect x="27" y="44" width="10" height="6" rx="2" fill="#b45309"/>
-  <!-- Body -->
   <rect x="16" y="50" width="32" height="10" rx="5" fill="#92400e"/>
-  <!-- Chest light -->
   <circle cx="32" cy="55" r="3" fill="#fbbf24"/>
   <circle cx="32" cy="55" r="1.5" fill="white" opacity="0.8"/>
-</svg>
-"""
+</svg>"""
+
+_ROBOT_B64 = base64.b64encode(_ROBOT_SVG_RAW.encode()).decode()
 
 def get_robot_logo(size=40):
-    return ROBOT_LOGO_SVG.replace("{size}", str(size))
+    """Returns an <img> tag with base64 SVG — renders correctly in st.markdown unsafe_allow_html"""
+    return f'<img src="data:image/svg+xml;base64,{_ROBOT_B64}" width="{size}" height="{size}" style="display:inline-block;vertical-align:middle;"/>'
 
 # ── Live Search Functions ─────────────────────────────────────────────────────
 def search_wikipedia(query):
