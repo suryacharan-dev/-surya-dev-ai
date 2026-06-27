@@ -310,8 +310,22 @@ section[data-testid="stSidebar"] > div { padding: 0 12px; }
     font-size: 13px !important;
 }
 
-.stChatInput { border-top: 1px solid #e5e1da; padding-top: 12px; }
-.stChatInput textarea {
+/* ── Chat input area ── */
+.stChatInput { border-top: 1px solid #e5e1da !important; padding-top: 12px !important; }
+
+/* Fix dark bottom bar */
+[data-testid="stBottom"] {
+    background-color: #faf9f7 !important;
+    border-top: 1px solid #e5e1da !important;
+    padding: 12px 16px !important;
+}
+[data-testid="stBottom"] > div {
+    background-color: #faf9f7 !important;
+}
+
+/* Chat input box */
+.stChatInput textarea,
+[data-testid="stChatInput"] textarea {
     background-color: #ffffff !important;
     color: #1a1a1a !important;
     border-radius: 16px !important;
@@ -321,9 +335,21 @@ section[data-testid="stSidebar"] > div { padding: 0 12px; }
     box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
     resize: none !important;
 }
-.stChatInput textarea:focus {
+.stChatInput textarea:focus,
+[data-testid="stChatInput"] textarea:focus {
     border-color: #d97706 !important;
     box-shadow: 0 0 0 3px rgba(217,119,6,0.1) !important;
+    outline: none !important;
+}
+
+/* Chat input submit button */
+[data-testid="stChatInput"] button {
+    background-color: #d97706 !important;
+    border-radius: 10px !important;
+    color: white !important;
+}
+[data-testid="stChatInput"] button:hover {
+    background-color: #b45309 !important;
 }
 
 .stChatMessage {
@@ -331,8 +357,23 @@ section[data-testid="stSidebar"] > div { padding: 0 12px; }
     border: none !important;
     max-width: 720px;
     margin: 0 auto;
+    width: 100% !important;
 }
-[data-testid="stChatMessageContent"] { padding: 0 !important; }
+[data-testid="stChatMessageContent"] {
+    padding: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    max-width: 100% !important;
+}
+/* Fix truncated text in chat bubbles */
+[data-testid="stChatMessageContent"] p,
+[data-testid="stChatMessageContent"] div {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: unset !important;
+    max-width: 100% !important;
+}
 
 .model-tag {
     display: inline-block;
