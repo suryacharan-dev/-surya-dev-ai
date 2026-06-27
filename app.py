@@ -20,10 +20,7 @@ st.set_page_config(page_title="Surya Dev AI", page_icon="🤖", layout="wide")
 # ════════════════════════════════════════════════════════════════════════════
 # CONSTANTS & CLIENTS
 # ════════════════════════════════════════════════════════════════════════════
-GROQ_API_KEY    = st.secrets["GROQ_API_KEY"]
 GEMINI_API_KEY  = st.secrets["GEMINI_API_KEY"]
-COHERE_API_KEY  = st.secrets["COHERE_API_KEY"]
-MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
 CLIENT_ID       = st.secrets["CLIENT_ID"]
 CLIENT_SECRET   = st.secrets["CLIENT_SECRET"]
 
