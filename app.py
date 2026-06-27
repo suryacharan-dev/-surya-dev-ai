@@ -97,6 +97,22 @@ st.markdown("""
     .new-chat-btn button { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; color: white !important; border-radius: 12px !important; font-weight: 500 !important; padding: 10px !important; }
     .new-chat-btn button:hover { background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important; }
     h1, h2, h3 { color: #ffffff; }
+/* ── Fix collapsed sidebar toggle button ── */
+button[kind="header"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #1a1a1a !important;
+    background-color: #f0ede8 !important;
+    border-radius: 0 8px 8px 0 !important;
+    border: 1px solid #e5e1da !important;
+}
     </style>
 """, unsafe_allow_html=True)
 
