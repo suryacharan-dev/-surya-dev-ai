@@ -1,0 +1,7 @@
+streamlit
+groq
+google-generativeai
+cohere
+requests
+streamlit-oauth
+pyjwt
