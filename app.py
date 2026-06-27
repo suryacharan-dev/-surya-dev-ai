@@ -113,7 +113,6 @@ def get_response(messages, model, use_live=True):
         last = next((m["content"] for m in reversed(messages) if m["role"]=="user"), "")
         aug = clean_msgs(messages)
         searched = False
-
         if use_live and needs_search(last):
             topic = re.sub(r'^(what is|who is|tell me about|search|find|look up|when did|where is)\s+','',last.lower()).strip()
             ctx = ddg_search(last) + "\n" + wiki_search(topic)
@@ -122,35 +121,26 @@ def get_response(messages, model, use_live=True):
                 inject = {"role":"user","content":
                     f"Live web info:\n---\n{ctx[:1500]}\n---\nUse this to answer. Question: {last}"}
                 aug = clean_msgs(messages[:-1]) + [inject]
-
         if model == "Llama 3.3 (Groq)":
             r = groq_client.chat.completions.create(model="llama-3.3-70b-versatile", messages=aug)
             return r.choices[0].message.content, searched
-
         elif model == "Gemini 1.5 Flash":
             gm = genai.GenerativeModel("gemini-1.5-flash")
             hist = [{"role":"user" if m["role"]=="user" else "model","parts":[m["content"]]} for m in aug[:-1]]
             ch = gm.start_chat(history=hist)
             return ch.send_message(aug[-1]["content"]).text, searched
-
         elif model == "Command R (Cohere)":
             cm = [{"role":"user" if m["role"]=="user" else "assistant","content":m["content"]} for m in aug]
             r = cohere_client.chat(model="command-r", messages=cm)
             return r.message.content[0].text, searched
-
         elif model == "Mistral Small":
             h = {"Authorization":f"Bearer {MISTRAL_API_KEY}","Content-Type":"application/json"}
             r = requests.post("https://api.mistral.ai/v1/chat/completions",
                 headers=h, json={"model":"mistral-small-latest","messages":aug}, timeout=30)
             r.raise_for_status()
             return r.json()["choices"][0]["message"]["content"], searched
-
     except Exception as e:
         return f"⚠️ Error: {str(e)}", False
-
-def greet():
-    h = datetime.now().hour
-    return "Good morning" if h<12 else "Good afternoon" if h<17 else "Good evening"
 
 # ══════════════════════════════════════════════════════════════════════════════
 st.set_page_config(page_title="Surya Dev AI", page_icon="🤖", layout="wide",
@@ -160,259 +150,226 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; }
-html, body { margin:0; padding:0; }
-.stApp { background:#212121 !important; color:#ececec !important; font-family:'Inter',sans-serif !important; }
-#MainMenu, footer, header { visibility:hidden !important; }
-
-/* ═══ SIDEBAR — fully visible ═══ */
-section[data-testid="stSidebar"] {
-    background:#171717 !important;
-    border-right: 2px solid #10a37f !important;
-    min-width: 270px !important;
-    max-width: 270px !important;
-}
-section[data-testid="stSidebar"] > div {
-    padding: 0 !important;
-    overflow-y: auto !important;
-    background: #171717 !important;
-}
-
-/* Force ALL text inside sidebar to be bright white */
-section[data-testid="stSidebar"] * {
+/* ═══ RESET & BASE ═══ */
+html, body, [class*="css"], .stApp {
+    background-color: #212121 !important;
     color: #ececec !important;
+    font-family: 'Inter', sans-serif !important;
+}
+#MainMenu, footer, header { visibility: hidden !important; }
+.main .block-container { padding: 0 !important; max-width: 100% !important; }
+
+/* ═══ OVERRIDE STREAMLIT CSS VARIABLES ═══ */
+:root {
+    --text-color: #ececec !important;
+    --background-color: #212121 !important;
+    --secondary-background-color: #171717 !important;
+    --primary-color: #10a37f !important;
 }
 
-/* Sidebar collapse/expand toggle button */
+/* ═══ SIDEBAR ═══ */
+[data-testid="stSidebar"] {
+    background-color: #171717 !important;
+    border-right: 2px solid #10a37f !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+    background-color: #171717 !important;
+    padding-top: 0 !important;
+}
+
+/* Force sidebar collapse button to be GREEN and visible */
 [data-testid="collapsedControl"] {
-    background: #10a37f !important;
-    border: none !important;
-    border-radius: 0 8px 8px 0 !important;
+    background-color: #10a37f !important;
     color: white !important;
+    border-radius: 0 8px 8px 0 !important;
+    border: none !important;
     width: 28px !important;
-    min-width: 28px !important;
-    box-shadow: 2px 0 12px rgba(16,163,127,0.4) !important;
-    z-index: 9999 !important;
+    display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    display: flex !important;
+    z-index: 99999 !important;
+    box-shadow: 3px 0 15px rgba(16,163,127,0.5) !important;
 }
-[data-testid="collapsedControl"] svg {
-    color: white !important;
-    fill: white !important;
-}
-[data-testid="collapsedControl"]:hover {
-    background: #0d8a6a !important;
-}
+[data-testid="collapsedControl"] svg { color: white !important; fill: white !important; }
+[data-testid="collapsedControl"]:hover { background-color: #0d8a6a !important; }
 
-/* Sidebar expand button (when sidebar is open) */
-button[data-testid="baseButton-header"] {
+/* Sidebar expand arrow inside open sidebar */
+[data-testid="stSidebar"] button[kind="header"],
+[data-testid="stSidebar"] [data-testid="baseButton-header"] {
     color: #ececec !important;
     background: transparent !important;
-    opacity: 1 !important;
 }
 
-/* ═══ ALL BUTTONS BASE (sidebar) ═══ */
-section[data-testid="stSidebar"] .stButton > button {
-    background: #242424 !important;
+/* ═══ ALL TEXT IN SIDEBAR WHITE ═══ */
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown span,
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] [data-testid="stText"] {
     color: #ececec !important;
-    border: 1px solid #333 !important;
+}
+
+/* ═══ SIDEBAR BUTTONS ═══ */
+[data-testid="stSidebar"] .stButton button {
+    background-color: #252525 !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #383838 !important;
     border-radius: 8px !important;
     width: 100% !important;
     text-align: left !important;
-    padding: 10px 14px !important;
-    font-size: 14px !important;
+    padding: 10px 12px !important;
+    font-size: 13.5px !important;
     font-weight: 400 !important;
-    cursor: pointer !important;
-    transition: all 0.15s !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    margin-bottom: 2px !important;
+    font-family: 'Inter', sans-serif !important;
+    margin-bottom: 3px !important;
+    transition: all 0.15s ease !important;
 }
-section[data-testid="stSidebar"] .stButton > button:hover {
-    background: #2e2e2e !important;
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: #2e2e2e !important;
     border-color: #10a37f !important;
     color: #ffffff !important;
 }
-section[data-testid="stSidebar"] .stButton > button:focus {
-    box-shadow: none !important;
+[data-testid="stSidebar"] .stButton button:focus {
     border-color: #10a37f !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
-/* ═══ MAIN AREA ═══ */
-.main .block-container {
-    padding: 0 !important;
-    max-width: 100% !important;
-    background: #212121 !important;
+/* ═══ SIDEBAR SELECT BOX ═══ */
+[data-testid="stSidebar"] .stSelectbox > div > div {
+    background-color: #252525 !important;
+    color: #ececec !important;
+    border: 1px solid #383838 !important;
+    border-radius: 8px !important;
+}
+[data-testid="stSidebar"] .stSelectbox label { color: #aaa !important; font-size: 11px !important; }
+[data-testid="stSidebar"] [data-baseweb="select"] { background-color: #252525 !important; }
+[data-testid="stSidebar"] [data-baseweb="select"] div { color: #ececec !important; }
+
+/* ═══ SIDEBAR TOGGLE ═══ */
+[data-testid="stSidebar"] .stToggle label { color: #cccccc !important; font-size: 13px !important; }
+[data-testid="stSidebar"] .stToggle p { color: #cccccc !important; }
+
+/* ═══ DIVIDER ═══ */
+[data-testid="stSidebar"] hr {
+    border: none !important;
+    border-top: 1px solid #2e2e2e !important;
+    margin: 6px 0 !important;
 }
 
-/* ═══ CHAT MESSAGES ═══ */
+/* ═══ CHAT MESSAGES — THE KEY FIX ═══ */
+/* Override Streamlit's internal CSS vars for chat */
 [data-testid="stChatMessage"] {
-    background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
     padding: 20px 0 !important;
     max-width: 48rem !important;
     margin: 0 auto !important;
-    width: 100% !important;
 }
-[data-testid="stChatMessageContent"] {
-    background: transparent !important;
+/* This is the critical selector Streamlit uses for message text */
+[data-testid="stChatMessageContent"],
+[data-testid="stChatMessageContent"] *,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] ol,
+[data-testid="stMarkdownContainer"] ul,
+[data-testid="stMarkdownContainer"] strong,
+[data-testid="stMarkdownContainer"] em,
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3 {
     color: #ececec !important;
-    font-size: 16px !important;
-    line-height: 1.75 !important;
-    overflow: visible !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
-    max-width: 100% !important;
+    background-color: transparent !important;
 }
-[data-testid="stChatMessageContent"] p { color: #ececec !important; margin-bottom: 10px !important; }
-[data-testid="stChatMessageContent"] h1,
-[data-testid="stChatMessageContent"] h2,
-[data-testid="stChatMessageContent"] h3 { color: #ececec !important; }
-[data-testid="stChatMessageContent"] code {
-    background: #2d2d2d !important; color: #e2e2e2 !important;
-    border-radius: 4px !important; padding: 2px 6px !important; font-size: 14px !important;
+/* Bold text fix */
+[data-testid="stChatMessageContent"] strong,
+[data-testid="stMarkdownContainer"] strong {
+    color: #ffffff !important;
+    font-weight: 700 !important;
 }
-[data-testid="stChatMessageContent"] pre {
-    background: #1a1a1a !important; border: 1px solid #333 !important;
-    border-radius: 8px !important; padding: 16px !important; overflow-x: auto !important;
+/* Numbered/bullet lists */
+[data-testid="stMarkdownContainer"] ol li,
+[data-testid="stMarkdownContainer"] ul li {
+    color: #ececec !important;
+    margin-bottom: 6px !important;
+    line-height: 1.7 !important;
 }
-[data-testid="stChatMessageContent"] ul,
-[data-testid="stChatMessageContent"] ol { color: #ececec !important; padding-left: 20px !important; }
-[data-testid="stChatMessageContent"] li { margin-bottom: 4px !important; }
-[data-testid="stChatMessageContent"] a { color: #10a37f !important; }
+/* Code blocks */
+[data-testid="stMarkdownContainer"] code {
+    background-color: #2d2d2d !important;
+    color: #e2e2e2 !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+[data-testid="stMarkdownContainer"] pre {
+    background-color: #1a1a1a !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+}
+[data-testid="stMarkdownContainer"] pre code {
+    color: #e2e2e2 !important;
+    background: transparent !important;
+}
+/* Avatar icons in chat */
+[data-testid="stChatMessage"] [data-testid="chatAvatarIcon-user"],
+[data-testid="stChatMessage"] [data-testid="chatAvatarIcon-assistant"] {
+    background-color: #2a2a2a !important;
+    color: #ececec !important;
+}
 
-/* ═══ BOTTOM INPUT AREA ═══ */
+/* ═══ GENERAL MARKDOWN (outside chat) ═══ */
+.stMarkdown p, .stMarkdown span, .stMarkdown li,
+.element-container p, .element-container span {
+    color: #ececec !important;
+}
+
+/* ═══ BOTTOM / CHAT INPUT ═══ */
 [data-testid="stBottom"] {
-    background: #212121 !important;
+    background-color: #212121 !important;
     border-top: none !important;
-    padding: 8px 0 20px 0 !important;
+    padding: 8px 0 20px !important;
 }
-[data-testid="stBottom"] > div { background: #212121 !important; }
-
-/* ═══ CHAT INPUT ═══ */
+[data-testid="stBottom"] > div { background-color: #212121 !important; }
 [data-testid="stChatInput"] {
-    background: #2f2f2f !important;
-    border: 1px solid #404040 !important;
+    background-color: #2f2f2f !important;
+    border: 1px solid #444 !important;
     border-radius: 16px !important;
     max-width: 48rem !important;
     margin: 0 auto !important;
 }
 [data-testid="stChatInput"]:focus-within { border-color: #10a37f !important; }
 [data-testid="stChatInput"] textarea {
-    background: #2f2f2f !important;
+    background-color: #2f2f2f !important;
     color: #ececec !important;
     border: none !important;
-    border-radius: 16px !important;
     font-size: 16px !important;
-    padding: 14px 50px 14px 18px !important;
-    resize: none !important;
     font-family: 'Inter', sans-serif !important;
+    padding: 14px 50px 14px 18px !important;
 }
 [data-testid="stChatInput"] textarea::placeholder { color: #8e8ea0 !important; }
 [data-testid="stChatInput"] button {
-    background: #10a37f !important;
+    background-color: #10a37f !important;
     border-radius: 10px !important;
     color: white !important;
     border: none !important;
     margin-right: 8px !important;
 }
-[data-testid="stChatInput"] button:hover { background: #0d8a6a !important; }
-[data-testid="stChatInput"] button:disabled { background: #444 !important; }
-
-/* ═══ SELECT BOX in sidebar ═══ */
-section[data-testid="stSidebar"] .stSelectbox > div > div {
-    background: #2a2a2a !important;
-    color: #ececec !important;
-    border: 1px solid #444 !important;
-    border-radius: 10px !important;
-    font-size: 13px !important;
-}
-section[data-testid="stSidebar"] .stSelectbox label {
-    color: #aaa !important;
-    font-size: 11px !important;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-/* Dropdown options */
-[data-baseweb="popover"] {
-    background: #2a2a2a !important;
-}
-[data-baseweb="menu"] {
-    background: #2a2a2a !important;
-}
-[role="option"] {
-    background: #2a2a2a !important;
-    color: #ececec !important;
-}
-[role="option"]:hover {
-    background: #333 !important;
-}
-
-/* ═══ TOGGLE ═══ */
-section[data-testid="stSidebar"] .stToggle label { color: #cccccc !important; font-size: 13px !important; }
-section[data-testid="stSidebar"] .stToggle p { color: #cccccc !important; font-size: 13px !important; }
-
-/* ═══ DIVIDER ═══ */
-hr { border: none !important; border-top: 1px solid #2e2e2e !important; margin: 6px 0 !important; }
-section[data-testid="stSidebar"] hr { border-top: 1px solid #2e2e2e !important; }
+[data-testid="stChatInput"] button:hover { background-color: #0d8a6a !important; }
+[data-testid="stChatInput"] button:disabled { background-color: #3a3a3a !important; }
 
 /* ═══ SCROLLBAR ═══ */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; }
-
-/* ═══ SIDEBAR LABELS ═══ */
-.s-label {
-    font-size: 11px; font-weight: 600; color: #888 !important; text-transform: uppercase;
-    letter-spacing: 0.08em; padding: 8px 14px 4px;
-}
-.s-section-title {
-    font-size: 12px; color: #888 !important; padding: 10px 14px 2px; font-weight: 500;
-}
-
-/* ═══ NEW CHAT BUTTON ═══ */
-.new-chat-wrap .stButton > button {
-    background: #1e1e1e !important;
-    color: #ececec !important;
-    border: 1px solid #444 !important;
-    border-radius: 10px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    padding: 12px 14px !important;
-    margin: 4px 0 !important;
-}
-.new-chat-wrap .stButton > button:hover {
-    background: #2a2a2a !important;
-    border-color: #10a37f !important;
-    color: #10a37f !important;
-}
-
-/* ═══ PROFILE CARD ═══ */
-.prof-card {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: 10px; cursor: pointer;
-    transition: background 0.15s; margin: 0 8px;
-}
-.prof-card:hover { background: #2a2a2a; }
-.prof-name  { font-size: 13px; font-weight: 600; color: #ececec !important; }
-.prof-sub   { font-size: 11px; color: #777 !important; }
-
-/* ═══ HISTORY ITEMS ═══ */
-.hist-item .stButton > button {
-    background: transparent !important;
-    color: #c5c5c5 !important;
-    border: none !important;
-    font-size: 13px !important;
-    text-align: left !important;
-    padding: 8px 14px !important;
-}
-.hist-item .stButton > button:hover {
-    background: #2a2a2a !important;
-    color: #ffffff !important;
-    border: none !important;
-}
 
 /* ═══ MODEL BADGES ═══ */
 .mbadge {
@@ -420,16 +377,17 @@ section[data-testid="stSidebar"] hr { border-top: 1px solid #2e2e2e !important; 
     font-size: 11px; font-weight: 600; padding: 2px 10px;
     border-radius: 20px; margin-bottom: 8px;
 }
-.mbadge.groq    { background: #0d3b30; color: #1dc8a0; border: 1px solid #0d8a6a; }
-.mbadge.gemini  { background: #0d2060; color: #7baaf7; border: 1px solid #2d5dbf; }
-.mbadge.cohere  { background: #3d2200; color: #f59e0b; border: 1px solid #92400e; }
-.mbadge.mistral { background: #2d1060; color: #c084fc; border: 1px solid #7c3aed; }
-.mbadge.live    { background: #0d2d1a; color: #4ade80; border: 1px solid #166534; margin-left: 5px; }
+.mbadge.groq    { background: #0d3b30; color: #1dc8a0 !important; border: 1px solid #0d8a6a; }
+.mbadge.gemini  { background: #0d2060; color: #7baaf7 !important; border: 1px solid #2d5dbf; }
+.mbadge.cohere  { background: #3d2200; color: #f59e0b !important; border: 1px solid #92400e; }
+.mbadge.mistral { background: #2d1060; color: #c084fc !important; border: 1px solid #7c3aed; }
+.mbadge.live    { background: #0d2d1a; color: #4ade80 !important; border: 1px solid #166534; margin-left: 5px; }
 
 /* ═══ SUGGESTION CHIPS ═══ */
-.chip .stButton > button {
-    background: #2a2a2a !important;
-    color: #c5c5c5 !important;
+.chip button,
+.chip .stButton button {
+    background-color: #2a2a2a !important;
+    color: #d0d0d0 !important;
     border: 1px solid #383838 !important;
     border-radius: 14px !important;
     font-size: 13.5px !important;
@@ -438,14 +396,76 @@ section[data-testid="stSidebar"] hr { border-top: 1px solid #2e2e2e !important; 
     height: auto !important;
     white-space: normal !important;
     line-height: 1.45 !important;
+    width: 100% !important;
 }
-.chip .stButton > button:hover {
-    background: #303030 !important;
+.chip button:hover,
+.chip .stButton button:hover {
+    background-color: #303030 !important;
     border-color: #10a37f !important;
     color: #fff !important;
 }
 
-/* ═══ ACCOUNT PAGE ═══ */
+/* ═══ NEW CHAT BUTTON ═══ */
+.new-chat-wrap .stButton button {
+    background-color: #1e1e1e !important;
+    color: #ececec !important;
+    border: 1px solid #444 !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 12px 14px !important;
+}
+.new-chat-wrap .stButton button:hover {
+    background-color: #2a2a2a !important;
+    border-color: #10a37f !important;
+    color: #10a37f !important;
+}
+
+/* ═══ SIGN OUT ═══ */
+.signout-wrap .stButton button {
+    background-color: transparent !important;
+    color: #888 !important;
+    border: 1px solid #2e2e2e !important;
+    font-size: 13px !important;
+    padding: 8px 14px !important;
+}
+.signout-wrap .stButton button:hover {
+    background-color: #2a1a1a !important;
+    color: #ff6b6b !important;
+    border-color: #ff6b6b !important;
+}
+
+/* ═══ BACK BUTTON ═══ */
+.back-btn .stButton button {
+    background-color: #2a2a2a !important;
+    color: #ececec !important;
+    border: 1px solid #3a3a3a !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    width: auto !important;
+    padding: 8px 16px !important;
+}
+.back-btn .stButton button:hover {
+    border-color: #10a37f !important;
+    color: #10a37f !important;
+}
+
+/* ═══ HIST ITEMS ═══ */
+.hist-item .stButton button {
+    background-color: transparent !important;
+    color: #b0b0b0 !important;
+    border: none !important;
+    font-size: 13px !important;
+    text-align: left !important;
+    padding: 7px 12px !important;
+}
+.hist-item .stButton button:hover {
+    background-color: #252525 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+/* ═══ ACCOUNT / INFO BOXES ═══ */
 .acc-card {
     background: linear-gradient(135deg,#1a3a30,#1e2a25);
     border: 1px solid #2a5a42; border-radius: 16px;
@@ -484,45 +504,6 @@ section[data-testid="stSidebar"] hr { border-top: 1px solid #2e2e2e !important; 
 .fi { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #999; margin-bottom: 12px; }
 .fi-icon { width: 30px; height: 30px; border-radius: 8px; display: flex;
     align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
-
-/* ═══ MODEL SELECTOR PAGE ═══ */
-.back-btn .stButton > button {
-    background: #2a2a2a !important;
-    color: #ececec !important;
-    border: 1px solid #3a3a3a !important;
-    border-radius: 10px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    padding: 8px 16px !important;
-    width: auto !important;
-}
-.back-btn .stButton > button:hover {
-    background: #333 !important;
-    border-color: #10a37f !important;
-    color: #10a37f !important;
-}
-
-/* ═══ SIGN OUT BUTTON (sidebar) ═══ */
-.signout-wrap .stButton > button {
-    background: transparent !important;
-    color: #888 !important;
-    border: 1px solid #2e2e2e !important;
-    font-size: 13px !important;
-    padding: 8px 14px !important;
-}
-.signout-wrap .stButton > button:hover {
-    background: #2a2a2a !important;
-    color: #ff6b6b !important;
-    border-color: #ff6b6b !important;
-}
-
-/* ═══ GENERAL TEXT VISIBILITY FIXES ═══ */
-.stMarkdown p { color: #ececec !important; }
-section[data-testid="stSidebar"] .stMarkdown p { color: #ececec !important; }
-section[data-testid="stSidebar"] .stMarkdown span { color: #ececec !important; }
-section[data-testid="stSidebar"] p { color: #ececec !important; }
-section[data-testid="stSidebar"] span { color: #ececec !important; }
-section[data-testid="stSidebar"] div { color: #ececec !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -595,13 +576,13 @@ else:
     mdl    = st.session_state.model
     tag    = MODELS[mdl]["tag"]
     icon   = MODELS[mdl]["icon"]
+    live_on = st.session_state.live
 
     # ── SIDEBAR ──────────────────────────────────────────────────────────────
     with st.sidebar:
-        # Logo + title row
         st.markdown(f"""
-        <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 10px;
-            border-bottom:1px solid #2e2e2e;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 12px;
+            border-bottom:1px solid #2a2a2a;margin-bottom:6px;">
           <div style="width:32px;height:32px;background:#1a3a30;border-radius:8px;
             border:1px solid #10a37f;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             {robot_img(22)}
@@ -610,8 +591,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        # New Chat
-        st.markdown('<div class="new-chat-wrap" style="padding:4px 10px 8px;">', unsafe_allow_html=True)
+        st.markdown('<div class="new-chat-wrap" style="padding:6px 10px 4px;">', unsafe_allow_html=True)
         if st.button("✏️  New Chat", key="new_chat", use_container_width=True):
             st.session_state.msgs = []
             st.session_state.chat_id = None
@@ -619,84 +599,65 @@ else:
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Nav buttons
-        st.markdown('<div style="padding:0 10px 8px;">', unsafe_allow_html=True)
+        st.markdown('<div style="padding:2px 10px 6px;">', unsafe_allow_html=True)
         if st.button("🔍  Search Chats", key="nav_search", use_container_width=True):
-            st.session_state.page = "search"
-            st.rerun()
+            st.session_state.page = "search"; st.rerun()
         if st.button("🤖  AI Models", key="nav_models", use_container_width=True):
-            st.session_state.page = "models"
-            st.rerun()
+            st.session_state.page = "models"; st.rerun()
         if st.button("👤  Account", key="nav_acc", use_container_width=True):
-            st.session_state.page = "account"
-            st.rerun()
+            st.session_state.page = "account"; st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
+        st.markdown('<hr style="border:none;border-top:1px solid #2a2a2a;margin:6px 0;">', unsafe_allow_html=True)
 
-        # Model picker
-        st.markdown('<div style="padding:0 10px;"><p style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Active Model</p></div>', unsafe_allow_html=True)
-        with st.container():
-            new_model = st.selectbox("Model", list(MODELS.keys()),
-                index=list(MODELS.keys()).index(mdl), label_visibility="collapsed")
+        st.markdown('<p style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.1em;padding:4px 14px 4px;margin:0;">Active Model</p>', unsafe_allow_html=True)
+        new_model = st.selectbox("Model", list(MODELS.keys()),
+            index=list(MODELS.keys()).index(mdl), label_visibility="collapsed")
         if new_model != mdl:
-            st.session_state.model = new_model
-            st.rerun()
+            st.session_state.model = new_model; st.rerun()
 
-        # Live search toggle
-        st.markdown('<div style="padding:4px 10px;">', unsafe_allow_html=True)
-        live_on = st.toggle("🌐  Live Web Search", value=st.session_state.live)
-        if live_on != st.session_state.live:
-            st.session_state.live = live_on
-            st.rerun()
+        st.markdown('<div style="padding:4px 10px 2px;">', unsafe_allow_html=True)
+        new_live = st.toggle("🌐  Live Web Search", value=st.session_state.live)
+        if new_live != st.session_state.live:
+            st.session_state.live = new_live; st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
+        st.markdown('<hr style="border:none;border-top:1px solid #2a2a2a;margin:6px 0;">', unsafe_allow_html=True)
 
-        # Chat history
         if uchats:
-            st.markdown('<p style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.08em;padding:4px 14px 4px;">Recent Chats</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.1em;padding:4px 14px 2px;margin:0;">Recent Chats</p>', unsafe_allow_html=True)
             for cid, cdata in sorted(uchats.items(), reverse=True)[:25]:
                 title = cdata.get("title","Untitled")
-                disp  = title[:30] + ("…" if len(title)>30 else "")
+                disp  = title[:28] + ("…" if len(title)>28 else "")
                 st.markdown('<div class="hist-item">', unsafe_allow_html=True)
-                if st.button(f"💬  {disp}", key=f"h_{cid}", use_container_width=True):
+                if st.button(f"💬 {disp}", key=f"h_{cid}", use_container_width=True):
                     st.session_state.chat_id = cid
                     st.session_state.msgs = cdata["messages"]
-                    st.session_state.page = "chat"
-                    st.rerun()
+                    st.session_state.page = "chat"; st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        # Spacer to push profile to bottom
-        st.markdown('<div style="height:80px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:90px;"></div>', unsafe_allow_html=True)
 
-        # Profile at bottom
-        av = (f'<img src="{pic}" style="width:32px;height:32px;border-radius:50%;'
-              f'object-fit:cover;border:2px solid #10a37f;flex-shrink:0;"/>'
+        av = (f'<img src="{pic}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #10a37f;flex-shrink:0;"/>'
               if pic else
-              f'<div style="width:32px;height:32px;border-radius:50%;background:#10a37f;'
-              f'display:flex;align-items:center;justify-content:center;color:white;'
-              f'font-weight:700;font-size:14px;flex-shrink:0;">{init}</div>')
+              f'<div style="width:30px;height:30px;border-radius:50%;background:#10a37f;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;">{init}</div>')
 
         st.markdown(f"""
-        <div style="position:sticky;bottom:0;background:#171717;
-            border-top:1px solid #2e2e2e;padding:10px 14px 6px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="position:fixed;bottom:0;left:0;width:258px;background:#171717;
+            border-top:1px solid #2a2a2a;padding:10px 14px 6px;z-index:100;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
             {av}
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;color:#ececec;
-                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{name}</div>
-              <div style="font-size:11px;color:#666;">Free Plan</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#ececec;">{name}</div>
+              <div style="font-size:11px;color:#555;">Free Plan</div>
             </div>
           </div>
         </div>
         """, unsafe_allow_html=True)
-
-        st.markdown('<div class="signout-wrap" style="padding:0 10px 12px;">', unsafe_allow_html=True)
+        st.markdown('<div class="signout-wrap" style="padding:0 10px 70px;">', unsafe_allow_html=True)
         if st.button("🚪  Sign Out", key="signout", use_container_width=True):
             for k in DEFAULTS: st.session_state[k] = DEFAULTS[k]
-            st.session_state.chats = load_chats()
-            st.rerun()
+            st.session_state.chats = load_chats(); st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -709,36 +670,22 @@ else:
             st.markdown('<div class="back-btn">', unsafe_allow_html=True)
             if st.button("← Back to Chat", key="back_acc"):
                 st.session_state.page = "chat"; st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('</div><br>', unsafe_allow_html=True)
 
-            av_lg = (f'<img src="{pic}" style="width:70px;height:70px;border-radius:50%;'
-                     f'border:3px solid #10a37f;object-fit:cover;"/>'
+            av_lg = (f'<img src="{pic}" style="width:70px;height:70px;border-radius:50%;border:3px solid #10a37f;object-fit:cover;"/>'
                      if pic else
-                     f'<div style="width:70px;height:70px;border-radius:50%;background:#10a37f;'
-                     f'display:flex;align-items:center;justify-content:center;font-size:28px;'
-                     f'color:white;font-weight:700;flex-shrink:0;">{init}</div>')
-
-            tc = len(uchats); tm = total_msgs(uchats)
-            lt = st.session_state.login_time or "—"
-
+                     f'<div style="width:70px;height:70px;border-radius:50%;background:#10a37f;display:flex;align-items:center;justify-content:center;font-size:28px;color:white;font-weight:700;flex-shrink:0;">{init}</div>')
+            tc = len(uchats); tm = total_msgs(uchats); lt = st.session_state.login_time or "—"
             st.markdown(f"""
-            <div class="acc-card">
-              {av_lg}
-              <div>
-                <div class="acc-name">{name}</div>
-                <div class="acc-email">{email}</div>
-                <div class="acc-badge">🤖 Surya Dev AI Member</div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-
+            <div class="acc-card">{av_lg}
+              <div><div class="acc-name">{name}</div>
+              <div class="acc-email">{email}</div>
+              <div class="acc-badge">🤖 Surya Dev AI Member</div></div>
+            </div>""", unsafe_allow_html=True)
             c1,c2,c3,c4 = st.columns(4)
             for col,num,lbl in [(c1,tc,"Chats"),(c2,tm,"Messages"),(c3,4,"AI Models"),(c4,"ON" if live_on else "OFF","Live Search")]:
                 col.markdown(f'<div class="stat-box"><div class="stat-n">{num}</div><div class="stat-l">{lbl}</div></div>', unsafe_allow_html=True)
-
             st.markdown("<br>", unsafe_allow_html=True)
-
             st.markdown(f"""
             <div class="info-box">
               <div class="info-ttl">Account Details</div>
@@ -754,9 +701,7 @@ else:
               <div class="irow"><span class="ik">Live Search</span><span class="iv" style="color:#10a37f;">{"✅ Enabled" if live_on else "❌ Disabled"}</span></div>
               <div class="irow"><span class="ik">Sources</span><span class="iv">Wikipedia + DuckDuckGo</span></div>
               <div class="irow"><span class="ik">Theme</span><span class="iv">🌙 Dark</span></div>
-            </div>
-            """, unsafe_allow_html=True)
-
+            </div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             b1,b2 = st.columns(2)
             with b1:
@@ -779,16 +724,14 @@ else:
             st.markdown('<div class="back-btn">', unsafe_allow_html=True)
             if st.button("← Back to Chat", key="back_mdl"):
                 st.session_state.page = "chat"; st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('</div><br>', unsafe_allow_html=True)
             st.markdown('<h2 style="color:#ececec;font-size:1.5rem;margin-bottom:6px;">AI Models</h2>', unsafe_allow_html=True)
             st.markdown('<p style="color:#888;font-size:14px;margin-bottom:24px;">Choose which AI model to chat with</p>', unsafe_allow_html=True)
-
             MODEL_DETAILS = {
-                "Llama 3.3 (Groq)":   {"icon":"⚡","color":"#10a37f","desc":"Fastest model. Powered by Groq's LPU. Great for general tasks, coding, and quick answers.","tag":"groq","speed":"🚀 Very Fast"},
-                "Gemini 1.5 Flash":   {"icon":"✦","color":"#4285f4","desc":"Google's multimodal AI. Excellent at reasoning, analysis, and following complex instructions.","tag":"gemini","speed":"⚡ Fast"},
-                "Command R (Cohere)": {"icon":"◈","color":"#d97706","desc":"Cohere's Command R model. Best for retrieval-augmented generation and document analysis.","tag":"cohere","speed":"🏃 Moderate"},
-                "Mistral Small":      {"icon":"◆","color":"#7c3aed","desc":"Mistral's efficient small model. Great balance of speed and quality for everyday tasks.","tag":"mistral","speed":"⚡ Fast"},
+                "Llama 3.3 (Groq)":   {"icon":"⚡","desc":"Fastest model. Powered by Groq LPU. Great for general tasks, coding, and quick answers.","speed":"🚀 Very Fast"},
+                "Gemini 1.5 Flash":   {"icon":"✦","desc":"Google's multimodal AI. Excellent at reasoning, analysis, and complex instructions.","speed":"⚡ Fast"},
+                "Command R (Cohere)": {"icon":"◈","desc":"Cohere's Command R. Best for retrieval-augmented generation and document analysis.","speed":"🏃 Moderate"},
+                "Mistral Small":      {"icon":"◆","desc":"Mistral's efficient model. Great balance of speed and quality for everyday tasks.","speed":"⚡ Fast"},
             }
             for mname, minfo in MODEL_DETAILS.items():
                 is_active = mname == st.session_state.model
@@ -798,21 +741,19 @@ else:
                 <div style="background:{bg};border:2px solid {border};border-radius:14px;
                   padding:18px 20px;margin-bottom:12px;">
                   <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                    <span style="font-size:24px;">{minfo['icon']}</span>
-                    <div>
+                    <span style="font-size:22px;">{minfo['icon']}</span>
+                    <div style="flex:1;">
                       <div style="font-size:15px;font-weight:600;color:#ececec;">{mname}</div>
                       <div style="font-size:12px;color:#888;">{minfo['speed']}</div>
                     </div>
-                    {"<span style='margin-left:auto;background:#10a37f;color:white;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;'>✓ Active</span>" if is_active else ""}
+                    {"<span style='background:#10a37f;color:white;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;'>✓ Active</span>" if is_active else ""}
                   </div>
                   <p style="font-size:13px;color:#aaa;margin:0;">{minfo['desc']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                </div>""", unsafe_allow_html=True)
                 if not is_active:
                     if st.button(f"Use {mname}", key=f"sel_{mname}", use_container_width=True):
                         st.session_state.model = mname
-                        st.session_state.page = "chat"
-                        st.rerun()
+                        st.session_state.page = "chat"; st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  SEARCH PAGE
@@ -824,11 +765,9 @@ else:
             st.markdown('<div class="back-btn">', unsafe_allow_html=True)
             if st.button("← Back to Chat", key="back_srch"):
                 st.session_state.page = "chat"; st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('</div><br>', unsafe_allow_html=True)
             st.markdown('<h2 style="color:#ececec;font-size:1.5rem;margin-bottom:16px;">Search Chats</h2>', unsafe_allow_html=True)
-            query = st.text_input("", placeholder="Search your conversations…",
-                label_visibility="collapsed")
+            query = st.text_input("", placeholder="Search your conversations…", label_visibility="collapsed")
             if query:
                 results = [(cid, cd) for cid,cd in uchats.items()
                            if query.lower() in cd.get("title","").lower()
@@ -840,8 +779,7 @@ else:
                         if st.button(f"💬 {title[:50]}", key=f"sr_{cid}", use_container_width=True):
                             st.session_state.chat_id = cid
                             st.session_state.msgs = cdata["messages"]
-                            st.session_state.page = "chat"
-                            st.rerun()
+                            st.session_state.page = "chat"; st.rerun()
                 else:
                     st.markdown('<p style="color:#666;font-size:14px;">No chats found.</p>', unsafe_allow_html=True)
 
@@ -849,22 +787,17 @@ else:
     #  CHAT PAGE
     # ══════════════════════════════════════════════════════════════════════════
     elif st.session_state.page == "chat":
-
         _, cc, _ = st.columns([1,5,1])
         with cc:
-
-            # Welcome screen
             if not st.session_state.msgs:
                 st.markdown("<br><br><br>", unsafe_allow_html=True)
-                st.markdown(f"""
+                st.markdown("""
                 <div style="text-align:center;margin-bottom:36px;">
                   <h1 style="font-size:2.2rem;font-weight:600;color:#ececec;
                     margin:0 0 28px;letter-spacing:-0.5px;">
                     What's on the agenda today?
                   </h1>
-                </div>
-                """, unsafe_allow_html=True)
-
+                </div>""", unsafe_allow_html=True)
                 suggestions = [
                     ("What's happening in AI news today?", "🌐"),
                     ("Explain quantum computing in simple terms", "⚛️"),
@@ -888,8 +821,6 @@ else:
                             chats[email][cid] = {"title":txt[:40],"messages":st.session_state.msgs}
                             st.session_state.chats = chats; save_chats(chats); st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
-
-            # Messages
             else:
                 st.markdown("<br>", unsafe_allow_html=True)
                 for msg in st.session_state.msgs:
@@ -897,13 +828,11 @@ else:
                         if msg["role"] == "assistant":
                             badge = f'<span class="mbadge {tag}">{icon} {mdl}</span>'
                             if msg.get("searched"):
-                                badge += ' <span class="mbadge live">🌐 Live</span>'
+                                badge += f' <span class="mbadge live">🌐 Live</span>'
                             st.markdown(badge, unsafe_allow_html=True)
                         st.markdown(msg["content"])
-
                 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-        # Chat input pinned at bottom
         prompt = st.chat_input("Ask anything…")
         if prompt:
             st.session_state.msgs.append({"role":"user","content":prompt})
@@ -915,3 +844,4 @@ else:
             st.session_state.chat_id = cid
             chats[email][cid] = {"title":st.session_state.msgs[0]["content"][:40],"messages":st.session_state.msgs}
             st.session_state.chats = chats; save_chats(chats); st.rerun()
+
